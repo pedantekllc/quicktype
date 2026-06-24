@@ -531,6 +531,39 @@ export const CJSONLanguage: Language = {
     sourceFiles: ["src/language/CJSON/index.ts"],
 };
 
+export const JanssonLanguage: Language = {
+    name: "jansson",
+    base: "test/fixtures/jansson",
+    // libjansson is a system dep (brew/apt). No download needed.
+    compileCommand:
+        "gcc -O0 -o quicktype -I. $(pkg-config --cflags jansson) main.c $(pkg-config --libs jansson)",
+    runCommand(sample: string) {
+        // Leak-check on Linux CI (QT_VALGRIND=1); plain run elsewhere — macOS/
+        // Apple-Silicon can't run valgrind, so local dev validates correctness only.
+        const vg = process.env.QT_VALGRIND
+            ? "valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 "
+            : "";
+        return `${vg}./quicktype "${sample}"`;
+    },
+    diffViaSchema: true,
+    skipDiffViaSchema: [...(CJSONLanguage.skipDiffViaSchema ?? [])],
+    allowMissingNull: false,
+    features: ["enum", "union", "no-defaults"],
+    output: "TopLevel.h",
+    topLevel: "TopLevel",
+    // v1 jansson limits overlap cJSON's (unions/constraints/top-level-enum), so
+    // reuse its skip baseline.
+    skipJSON: [...(CJSONLanguage.skipJSON ?? [])],
+    skipMiscJSON: false,
+    skipSchema: [...(CJSONLanguage.skipSchema ?? [])],
+    rendererOptions: {},
+    quickTestRendererOptions: [],
+    sourceFiles: [
+        "src/language/Jansson/language.ts",
+        "src/language/Jansson/JanssonRenderer.ts",
+    ],
+};
+
 export const CPlusPlusLanguage: Language = {
     name: "cplusplus",
     base: "test/fixtures/cplusplus",

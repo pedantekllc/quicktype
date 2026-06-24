@@ -1,6 +1,7 @@
 import type { TargetLanguage } from "../TargetLanguage";
 
 import { CJSONTargetLanguage } from "./CJSON";
+import { JanssonTargetLanguage } from "./Jansson";
 import { CPlusPlusTargetLanguage } from "./CPlusPlus";
 import { CrystalTargetLanguage } from "./Crystal";
 import { CSharpTargetLanguage } from "./CSharp";
@@ -34,6 +35,7 @@ import { TypeScriptZodTargetLanguage } from "./TypeScriptZod";
 
 export const all = [
     new CJSONTargetLanguage(),
+    new JanssonTargetLanguage(),
     new CPlusPlusTargetLanguage(),
     new CrystalTargetLanguage(),
     new CSharpTargetLanguage(),
