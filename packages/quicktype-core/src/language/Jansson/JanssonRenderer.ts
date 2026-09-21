@@ -244,11 +244,13 @@ export class JanssonRenderer extends ConvenienceRenderer {
     }
 
     private emitClassSerde(c: ClassType, name: Name): void {
-        this.emitBlock(["static int ", name, "_from_json(const json_t *root, ", name, " *out)"], () => {
+        this.emitBlock(["static inline int ", name, "_from_json(const json_t *root, ", name, " *out)"], () => {
             this.emitLine("if (!out) return -1;");
             this.emitLine("memset(out, 0, sizeof(*out));");
             this.emitLine("if (!json_is_object(root)) return -1;");
-            this.emitLine("json_t *v;");
+            // A field-less schema type (e.g. a parameterless probe request) parses
+            // nothing, so the scratch would be an unused variable.
+            if (c.getProperties().size > 0) this.emitLine("json_t *v;");
             this.forEachClassProperty(c, "none", (pname, json, p) => {
                 const t = this.unwrap(p.type);
                 this.emitLine('v = json_object_get((json_t *)root, "', json, '");');
@@ -264,7 +266,7 @@ export class JanssonRenderer extends ConvenienceRenderer {
             this.emitLine("return 0;");
         });
         this.ensureBlankLine();
-        this.emitBlock(["static json_t *", name, "_to_json(const ", name, " *in)"], () => {
+        this.emitBlock(["static inline json_t *", name, "_to_json(const ", name, " *in)"], () => {
             this.emitLine("json_t *root = json_object();");
             this.emitLine("if (!in) return root;");
             this.forEachClassProperty(c, "none", (pname, json, p) => {
@@ -284,7 +286,7 @@ export class JanssonRenderer extends ConvenienceRenderer {
             this.emitLine("return root;");
         });
         this.ensureBlankLine();
-        this.emitBlock(["static void ", name, "_free(", name, " *v)"], () => {
+        this.emitBlock(["static inline void ", name, "_free(", name, " *v)"], () => {
             this.emitLine("if (!v) return;");
             this.forEachClassProperty(c, "none", (pname, _json, p) => {
                 const t = this.unwrap(p.type);
@@ -329,7 +331,7 @@ export class JanssonRenderer extends ConvenienceRenderer {
     private emitTopLevelSerde(t0: Type, name: Name): void {
         const t = this.unwrap(t0);
         const cat = this.catOf(t);
-        this.emitBlock(["static int ", name, "_from_json(const json_t *root, ", name, " *out)"], () => {
+        this.emitBlock(["static inline int ", name, "_from_json(const json_t *root, ", name, " *out)"], () => {
             this.emitLine("if (!out) return -1;");
             this.emitLine("memset(out, 0, sizeof(*out));");
             if (cat === "array") {
@@ -340,7 +342,7 @@ export class JanssonRenderer extends ConvenienceRenderer {
             this.emitLine("return 0;");
         });
         this.ensureBlankLine();
-        this.emitBlock(["static json_t *", name, "_to_json(const ", name, " *in)"], () => {
+        this.emitBlock(["static inline json_t *", name, "_to_json(const ", name, " *in)"], () => {
             this.emitLine("if (!in) return json_null();");
             if (cat === "array") {
                 this.emitLine("json_t *arr;");
@@ -353,7 +355,7 @@ export class JanssonRenderer extends ConvenienceRenderer {
             }
         });
         this.ensureBlankLine();
-        this.emitBlock(["static void ", name, "_free(", name, " *v)"], () => {
+        this.emitBlock(["static inline void ", name, "_free(", name, " *v)"], () => {
             this.emitLine("if (!v) return;");
             if (cat === "array") {
                 this.emitFreeArray((t as ArrayType).items, "v->value", "v->count");
@@ -379,9 +381,9 @@ export class JanssonRenderer extends ConvenienceRenderer {
         for (const [, n] of tops) this.emitLine("typedef struct ", n, " ", n, ";");
         this.ensureBlankLine();
         const proto = (n: Name): void => {
-            this.emitLine("static int ", n, "_from_json(const json_t *root, ", n, " *out);");
-            this.emitLine("static json_t *", n, "_to_json(const ", n, " *in);");
-            this.emitLine("static void ", n, "_free(", n, " *v);");
+            this.emitLine("static inline int ", n, "_from_json(const json_t *root, ", n, " *out);");
+            this.emitLine("static inline json_t *", n, "_to_json(const ", n, " *in);");
+            this.emitLine("static inline void ", n, "_free(", n, " *v);");
         };
         this.forEachObject("none", (_c: ClassType, n: Name) => proto(n));
         for (const [, n] of tops) proto(n);
